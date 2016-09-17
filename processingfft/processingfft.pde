@@ -31,13 +31,14 @@ int spectrum_height = 176; // determines range of dB shown
 String serial_port = "/dev/ttyUSB0";
 int baud_rate = 57600;
 boolean enable_32 = true;
+boolean enable_stereo = true; // overrides enable_32
 int[] freq_range_maxes = { 50, 69, 94, 129, 178, 241, 331, 453, 620, 850, 1241, 1600, 2200, 3000, 4100, 5600 };
 
 
-int num_levels = enable_32 ? 32 : 16;
-int[] freq_array = new int[num_levels];
-int[] last_freq = new int[num_levels];
-float[] freq_height = new float[num_levels];  //avg amplitude of each freq band
+int num_levels = !enable_stereo && enable_32 ? 32 : 16;
+int[] freq_array = new int[enable_stereo || enable_32 ? 32 : 16];
+int[] last_freq = new int[enable_stereo || enable_32 ? 32 : 16];
+float[] freq_height = new float[enable_stereo || enable_32 ? 32 : 16];  //avg amplitude of each freq band
 
 int i,g;
 float f;
@@ -47,7 +48,7 @@ void setup() {
 
   minim = new Minim(this);
   port = new Serial(this, serial_port, baud_rate); //set baud rate
-  in = minim.getLineIn(Minim.MONO,buffer_size,sample_rate);
+  in = minim.getLineIn(enable_stereo ? Minim.MONO : Minim.MONO,buffer_size,sample_rate);
  
   // create an FFT object that has a time-domain buffer 
   // the same size as line-in's sample buffer
@@ -61,17 +62,17 @@ void setup() {
   peak_age = new int[peaksize];
 }
 
-void draw() {
-  for(int k = 0; k < num_levels; k++){
+void generate_fft(AudioBuffer buffer, int offset) {
+  for(int k = offset; k < num_levels; k++){
     freq_array[k] = 0;
   }
 
   // perform a forward FFT on the samples in input buffer
-  fft.forward(in.mix);
+  fft.forward(buffer);
   
   // Frequency Band Ranges
   for (int fh = 0; fh < freq_range_maxes.length; fh++) {
-    if (enable_32) {
+    if (!enable_stereo && enable_32) {
       // Use the set of 16 frequency ranges and split them
       // evenly to create 32 ranges
       int min = fh == 0 ? 0 : freq_range_maxes[fh-1] + 1;
@@ -89,12 +90,12 @@ void draw() {
     } else {
       int max = freq_range_maxes[fh];
       int min = fh == 0 ? 0 : freq_range_maxes[fh-1] + 1;
-      freq_height[fh] = fft.calcAvg((float) min, (float) max);
+      freq_height[offset + fh] = fft.calcAvg((float) min, (float) max);
     }
   }
 
   // Amplitude Ranges: if else tree
-  for (int j = 0; j < num_levels; j++) {
+  for (int j = offset; j < offset + num_levels; j++) {
          if (freq_height[j] < 200000 && freq_height[j] > 200) { freq_array[j] = 16; }
     else if (freq_height[j] <= 300 && freq_height[j] > 150)   { freq_array[j] = 15; }
     else if (freq_height[j] <= 250 && freq_height[j] > 125)   { freq_array[j] = 14; }
@@ -114,7 +115,7 @@ void draw() {
     else if (freq_height[j] < 1 )                             { freq_array[j] = 0; }
   }
   
-  for (i = 0; i < num_levels; i++) {
+  for (i = offset; i < offset + num_levels; i++) {
     String out = i + ":" + freq_array[i] + "\n";
     println(out.trim());
     port.write(out);
@@ -124,6 +125,15 @@ void draw() {
   }
   
   delay(2); //delay for and timing
+}
+
+void draw() {
+  if (!enable_stereo) {
+    generate_fft(in.mix, 0);
+  } else {
+    generate_fft(in.left, 0);
+    generate_fft(in.right, 16);
+  }
 }
  
  
