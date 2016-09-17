@@ -7,6 +7,12 @@ This project contains a [Processing](https://processing.org/) sketch that runs a
 
 The Processing sketch is adapted from code found on [the Processing forums](https://forum.processing.org/two/discussion/13785/fft-code-for-audio-spectrum-analyzer).
 
+## Features
+
+- Flag for supporting FFTs of 16 frequency ranges (for 16x16 matrices)
+- Flag for supporting stereo mode input, with ranges 0-15 for left input, 16-31 for right input
+- Easily customizable frequency ranges
+
 ## Requirements
 
 - [Processing](https://processing.org/)
