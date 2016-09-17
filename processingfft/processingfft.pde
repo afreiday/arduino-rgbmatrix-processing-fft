@@ -48,7 +48,7 @@ void setup() {
 
   minim = new Minim(this);
   port = new Serial(this, serial_port, baud_rate); //set baud rate
-  in = minim.getLineIn(enable_stereo ? Minim.MONO : Minim.MONO,buffer_size,sample_rate);
+  in = minim.getLineIn(enable_stereo ? Minim.STEREO : Minim.MONO,buffer_size,sample_rate);
  
   // create an FFT object that has a time-domain buffer 
   // the same size as line-in's sample buffer
