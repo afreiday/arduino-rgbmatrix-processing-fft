@@ -28,11 +28,10 @@ int spectrum_height = 176; // determines range of dB shown
 /**
  * Misc. settings
  */
-String serial_port = "/dev/ttyUSB0";
+String serial_port = "/dev/ttyUSB1";
 int baud_rate = 57600;
 boolean enable_32 = true;
 int[] freq_range_maxes = { 50, 69, 94, 129, 178, 241, 331, 453, 620, 850, 1241, 1600, 2200, 3000, 4100, 5600 };
-
 
 int num_levels = enable_32 ? 32 : 16;
 int[] freq_array = new int[num_levels];
@@ -47,7 +46,8 @@ void setup() {
 
   minim = new Minim(this);
   port = new Serial(this, serial_port, baud_rate); //set baud rate
-  in = minim.getLineIn(Minim.MONO,buffer_size,sample_rate);
+  in = minim.getLineIn(Minim.MONO, buffer_size, sample_rate);
+  in.disableMonitoring();
  
   // create an FFT object that has a time-domain buffer 
   // the same size as line-in's sample buffer
@@ -115,12 +115,16 @@ void draw() {
   }
   
   for (i = 0; i < num_levels; i++) {
-    String out = i + ":" + freq_array[i] + "\n";
-    println(out.trim());
-    port.write(out);
     
-    if (i % 3 == 0)
-      delay(3);
+    if (freq_array[i] != last_freq[i]) {
+      String out = i + ":" + freq_array[i] + "\n";
+      println(out.trim());
+      port.write(out);
+      last_freq[i] = freq_array[i];
+      
+      if (i % 3 == 0)
+        delay(3);
+    }
   }
   
   delay(2); //delay for and timing
